@@ -1,0 +1,10 @@
+# IDE and Editor-specific files
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv_paragrammer
