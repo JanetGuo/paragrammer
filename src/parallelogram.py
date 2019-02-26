@@ -62,11 +62,6 @@ class Parallelogram:
         dist_ls = [(p, p.distance(p0)) for p in coords_ls]
         return sorted(dist_ls,key=itemgetter(0))
 
-    def get_drawing_coordinates(self):
-        x_coords = [self.p1.x, self.p2.x, self.p3.x, self.p4.x, self.p1.x]
-        y_coords = [self.p1.y, self.p2.y, self.p3.y, self.p4.y, self.p1.y]
-        return x_coords, y_coords
-
     def __eq__(self, other):
         return self.p1 == other.p1 and self.p2 == other.p2 and self.p3 == other.p3 and self.p4 == other.p4
 
