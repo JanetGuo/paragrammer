@@ -1,6 +1,8 @@
+import matplotlib
+# Make MacOSX-compatible by specifying backend. 
+# If on Windows, this import statement can be removed
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
-from src.parallelogram import *
 
 class Draw():
     @staticmethod
@@ -26,30 +28,11 @@ class Draw():
         # plot
         for gram in gram_ls:
             x_ls, y_ls = Draw().get_box_coordinates(gram)
+            # flip over x-axis to accomodate pixel origin being different
+            # from graphing origin
+            y_ls = [y*-1 for y in y_ls]
             plt.plot(x_ls, y_ls, linewidth=3)
 
         # Display the plot in the matplotlib's viewer.
         plt.show()
-
-if __name__ == '__main__':
-    points = [Point(0, 0), Point(5,10)]
-    # print(points[0] + points[1])
-    
-    para = Parallelogram(points)
-    print("width: {}, height: {}".format(para.get_width(), para.get_height()))
-    gram_ls = [para]
-    print(para)
-    Draw.show(gram_ls)
-    #################################
-    # p1 = Point(0, 0)
-    # p2 = Point(5, 5)
-    # p3 = Point(6, 10)
-
-    # boxes = [(p1, p2, None), (p1, p3, "black")]
-    # for box in boxes:
-    #     x_coords, y_coords = BoundingBox(box[0], box[1]).get_box_coordinates()
-    #     # Plot the number in the list and set the line thickness.
-    #     plt.plot(x_coords, y_coords, linewidth=3, color=box[2])
-    
-    # draw()
 
