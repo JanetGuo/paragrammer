@@ -86,3 +86,14 @@ class Parallelogram:
 
     def __str__(self):
         return f"({self.p1}, {self.p2}, {self.p3}, {self.p4})"
+
+class Parallelograms:
+    def __init__(self, ls=[]):
+        self.list = ls
+    
+    def append(self, para):
+        self.list.append(para)
+    
+    def __str__(self):
+        str_ls = [item.__str__() for item in self.list]
+        return "\n".join(str_ls)
