@@ -254,17 +254,29 @@ class Parallelograms:
         for i in range(len(self.list)):
             idx_num = self.meta_list[i]-1
             gram = self.list[i]
-            if tops[idx_num] == -1:
-                if (gram.p1.y < top_y[idx_num]) and (gram.p1.x < midpoint < gram.p3.x):
-                    tops[idx_num] = gram.p1.y/scale
+            if (tops[idx_num] == -1) and (gram.p1.y < top_y[idx_num]) and (gram.p1.x < midpoint < gram.p3.x):
+                tops[idx_num] = gram.p1.y/scale
 
         likelist_ls, max_density = self.calculate_alignment(samples_ls=tops, scale=scale, plot="top")
         self.top_pixel_align = min(likelist_ls)
         return self.top_pixel_align, max_density
 
     def get_bot_alignment(self, scale=1.0):
-        scale = float(scale) if not isinstance(scale, float) else scale
-        bots = []
-        page_width = max(self.right_pixel_align)
-        for gram in self.list:
-            pass
+        right_margin = self.right_pixel_align
+        left_margin = self.left_pixel_align
+
+        midpoint = left_margin + (right_margin-left_margin)/2.0
+        num_pages = max(self.meta_list)
+        bots = [-1]*num_pages
+        # bot_y = [0]*num_pages
+        size_min = midpoint
+        for i in range(len(self.list)):
+            idx_num = self.meta_list[i]-1
+            gram = self.list[i]
+            scaled_y = gram.p3.y/scale
+            if (scaled_y > bots[idx_num]) and (gram.p1.x < midpoint < gram.p3.x) and (gram.get_width() > size_min): 
+                bots[idx_num] = scaled_y
+
+        likelist_ls, max_density = self.calculate_alignment(samples_ls=bots, scale=scale, plot="bot")
+        self.bot_pixel_align = max(likelist_ls)
+        return self.bot_pixel_align, max_density
