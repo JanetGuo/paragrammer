@@ -4,6 +4,7 @@ from operator import itemgetter
 # imports for Parallelograms
 import numpy as np
 import matplotlib
+import heapq
 from scipy.stats import norm
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
@@ -95,16 +96,19 @@ class Parallelogram:
         return f"({self.p1}, {self.p2}, {self.p3}, {self.p4})"
 
 class Parallelograms:
-    def __init__(self, ls=[]):
-        self.list = ls
+    def __init__(self, initial_list=[], meta_list=[]):
+        self.list = initial_list
+        self.meta_list = meta_list
         self.bandwidth_grid = None
         self.left_plot, self.right_plot, self.top_plot, self.bot_plot = None, None, None, None
         self.left_pixel_align, self.right_pixel_align = None, None
         self.top_pixel_align, self.bot_pixel_align = None, None
         self.plot_dict = {}
     
-    def append(self, para):
+    def append(self, para, meta=None):
         self.list.append(para)
+        if meta:
+            self.meta_list.append(meta)
     
     def __str__(self):
         str_ls = [item.__str__() for item in self.list]
@@ -146,10 +150,9 @@ class Parallelograms:
         unsorted_ls = [(density, x_left) for density, x_left in dict_indents.items()]
         sorted_tups = sorted(unsorted_ls, key=lambda x: x[0])
         print("*"*60)
-        # print(dict_indents)
         for density, x_left in sorted_tups:
-            print(density, x_left)
-        # print(sorted_tups)
+            if density > 0.1:
+                print(density, x_left)
         print("*"*60)
         max_density = max(dict_indents, key=float)
         print(f"max_density: {max_density}")
@@ -175,9 +178,93 @@ class Parallelograms:
             
         return pixels, max_density
 
+    def calculate_alignment_range(self, densities):
+        density_deltas = np.append([0], np.diff(densities))
+        density_deltas = abs(density_deltas)
+        
+        # get indexes of two largest deltas
+        largest_index = heapq.nlargest(2, range(len(density_deltas)), density_deltas.__getitem__)
+        # largest_2 = heapq.nlargest(2, enumerate(density_deltas), key=lambda x: x[1])
+        
+        start_index = largest_index[0]
+        end_index = largest_index[1]
+
+        if start_index > end_index:
+            start_index = largest_index[1]
+            end_index = largest_index[0]
+        
+        return start_index, end_index
+
     def get_left_alignment(self, scale=1.0):
         scale = float(scale) if not isinstance(scale, float) else scale
         lefts = [gram.p1.x/scale for gram in self.list]
 
-        self.left_pixel_align, max_density = self.calculate_alignment(samples_ls=lefts, scale=scale, plot="left")
+        likeliest_ls, max_density = self.calculate_alignment(samples_ls=lefts, scale=scale, plot="left")
+        self.left_pixel_align = min(likeliest_ls)
         return self.left_pixel_align, max_density
+    
+    def get_right_alignment(self, scale=1.0):
+        """
+        Calculate right alignment of text. Since English documents are usually not right-justified, 
+        the variance of density peaks here will be much larger than get_left_alignment's KDE peaks.
+        As a result, this method will be using calculate_alignment_range() to help determine 
+        full breadth of KDE peaks.
+        """
+        scale = float(scale) if not isinstance(scale, float) else scale
+        rightmost = 2493
+        right_diffs = [(rightmost-gram.p3.x)/scale for gram in self.list]
+        
+        ##############
+        print("="*50)
+        print("get_right_alignment")
+        for gram in self.list[:20]:
+            print(f"{gram} | diff: {rightmost-gram.p3.x}")
+        print("="*50)
+        ##############
+        
+        # # right_diff_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
+        # # self.right_pixel_align = [rightmost-diff for diff in right_diff_align]
+        # self.right_pixel_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
+
+        self.right_pixel_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
+        densities = self.plot_dict["right"]["densities"]
+        start, end = self.calculate_alignment_range(densities)
+        # # find weighted average
+        # range_ls = list(range(start, end+1))
+        # weighted_avg = 0.0
+        # for pixel in range_ls:
+        #     density = densities[pixel]
+        #     weighted_avg += pixel*density
+        
+        # weighted_avg = weighted_avg/len(range_ls)
+        # self.right_pixel_align = rightmost-weighted_avg
+
+        avg = math.ceil((start + end)/2)
+        self.right_pixel_align = rightmost-avg
+        return self.right_pixel_align, max_density
+
+    def get_top_alignment(self, scale=1.0):
+        right_margin = self.right_pixel_align
+        left_margin = self.left_pixel_align
+
+        midpoint = left_margin + (right_margin-left_margin)/2.0
+        num_pages = max(self.meta_list)
+        tops = [-1]*num_pages
+        top_y = [5000]*num_pages
+        for i in range(len(self.list)):
+            idx_num = self.meta_list[i]-1
+            gram = self.list[i]
+            if tops[idx_num] == -1:
+                if (gram.p1.y < top_y[idx_num]) and (gram.p1.x < midpoint < gram.p3.x):
+                    tops[idx_num] = gram.p1.y/scale
+
+        likelist_ls, max_density = self.calculate_alignment(samples_ls=tops, scale=scale, plot="top")
+        self.top_pixel_align = min(likelist_ls)
+        return self.top_pixel_align, max_density
+
+    def get_bot_alignment(self, scale=1.0):
+        scale = float(scale) if not isinstance(scale, float) else scale
+        bots = []
+        page_width = max(self.right_pixel_align)
+        for gram in self.list:
+            pass
