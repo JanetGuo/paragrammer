@@ -46,8 +46,8 @@ class Parallelogram:
         Resulting calculations:
             self.p1 : top-left corner of bounding box.
             self.p2: top-right corner of bounding box.
-            self.p3: botton_left corner of bounding box.
-            self.p4 : bottom-right corner of bounding box.
+            self.p3: bottom-right corner of bounding box.
+            self.p4 : bottom-left corner of bounding box.
         """
         num_points = len(coords_ls)
 
