@@ -9,6 +9,9 @@ from scipy.stats import norm
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
 
+from time import time
+import random
+
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -44,10 +47,10 @@ class Parallelogram:
         :param `b` <float>: when x = 0.
 
         Resulting calculations:
-            self.p1 : top-left corner of bounding box.
+            self.p1: top-left corner of bounding box.
             self.p2: top-right corner of bounding box.
-            self.p3: bottom-right corner of bounding box.
-            self.p4 : bottom-left corner of bounding box.
+            self.p3: botton_left corner of bounding box.
+            self.p4: bottom-right corner of bounding box.
         """
         num_points = len(coords_ls)
 
@@ -98,7 +101,11 @@ class Parallelogram:
 class Parallelograms:
     bandwidth_grid = None
     
-    def __init__(self, initial_list=[], meta_list=[]):
+    def __init__(self, initial_list=None, meta_list=None):
+        if initial_list is None:
+            initial_list = []
+        if meta_list is None:
+            meta_list = []
         self.list = initial_list
         self.meta_list = meta_list
         self.left_plot, self.right_plot, self.top_plot, self.bot_plot = None, None, None, None
@@ -116,11 +123,30 @@ class Parallelograms:
         return "\n".join(str_ls)
     
     def set_bandwidth(self, X, manual_num=None):
+        print(f"len(X): {len(X)}")
         bandwidth = manual_num
         if manual_num is None:
-            # calculate bandwith using 10-fold cross-validation
+            # use a subset to reduce fit time
+            sample_size = 100
+            sample_set = set(X)
+            if len(sample_set) > sample_size:
+                sample_set = random.sample(X, sample_size)
+            else:
+                sample_set = X
+            print(f"len(sample): {len(sample_set)}")
+            np_samples = np.array(sample_set)[:, np.newaxis]
+
+            # calculate bandwith using cross-validation
+            start = time()
             grid = self.set_grid()
-            grid.fit(X)
+            stop = time()-start
+            print(f"wrap around set_grid: {stop}")
+            
+            start = time()
+            grid.fit(np_samples)
+            stop = time()-start
+            print(f"wrap around grid.fit(X): {stop}")
+
             bandwidth = grid.best_params_['bandwidth']
         return bandwidth
 
@@ -165,12 +191,27 @@ class Parallelograms:
 
     def calculate_alignment(self, samples_ls, scale=1.0, plot=None):
         X = np.array(samples_ls)[:, np.newaxis]
+        start = time()
         X_plot = self.get_pixel_intervals(samples_ls, scale)
+        stop = time()-start
+        print(f"get_pixel_intervals: {stop}")
 
-        tophat_bandwidth = self.set_bandwidth(X)
+        start = time()
+        tophat_bandwidth = self.set_bandwidth(samples_ls)
+        stop = time()-start
+        print(f"get bandwidth: {stop}")
+        start = time()
         kde = KernelDensity(kernel='tophat', bandwidth=tophat_bandwidth).fit(X)
+        stop = time()-start
+        print(f"fit to tophat kernel: {stop}")
+        start = time()
         log_dens = kde.score_samples(X_plot)
+        stop = time()-start
+        print(f"score_samples: {stop}")
+        start = time()
         pixels, max_density = self.get_highest_density_pixels(log_dens)
+        stop = time()-start
+        print(f"get_highest_density_pixels: {stop}")
 
         # in case of plotting
         if plot:
@@ -197,80 +238,3 @@ class Parallelograms:
             end_index = largest_index[0]
         
         return start_index, end_index
-
-    def get_left_alignment(self, scale=1.0):
-        scale = float(scale) if not isinstance(scale, float) else scale
-        lefts = [gram.p1.x*scale for gram in self.list]
-
-        likeliest_ls, max_density = self.calculate_alignment(samples_ls=lefts, scale=scale, plot="left")
-        self.left_pixel_align = min(likeliest_ls)
-        return self.left_pixel_align, max_density
-    
-    def get_right_alignment(self, scale=1.0):
-        """
-        Calculate right alignment of text. Since English documents are usually not right-justified, 
-        the variance of density peaks here will be much larger than get_left_alignment's KDE peaks.
-        As a result, this method will be using calculate_alignment_range() to help determine 
-        full breadth of KDE peaks.
-        """
-        scale = float(scale) if not isinstance(scale, float) else scale
-        rightmost = 2493
-        right_diffs = [(rightmost-gram.p3.x)*scale for gram in self.list]
-        
-        # # right_diff_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
-        # # self.right_pixel_align = [rightmost-diff for diff in right_diff_align]
-        # self.right_pixel_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
-
-        self.right_pixel_align, max_density = self.calculate_alignment(samples_ls=right_diffs, scale=scale, plot="right")
-        densities = self.plot_dict["right"]["densities"]
-        start, end = self.calculate_alignment_range(densities)
-        # # find weighted average
-        # range_ls = list(range(start, end+1))
-        # weighted_avg = 0.0
-        # for pixel in range_ls:
-        #     density = densities[pixel]
-        #     weighted_avg += pixel*density
-        
-        # weighted_avg = weighted_avg/len(range_ls)
-        # self.right_pixel_align = rightmost-weighted_avg
-
-        avg = math.ceil((start + end)/2)
-        self.right_pixel_align = rightmost-avg
-        return self.right_pixel_align, max_density
-
-    def get_top_alignment(self, scale=1.0):
-        right_margin = self.right_pixel_align
-        left_margin = self.left_pixel_align
-
-        midpoint = left_margin + (right_margin-left_margin)/2.0
-        num_pages = max(self.meta_list)
-        tops = [-1]*num_pages
-        top_y = [5000]*num_pages
-        for i in range(len(self.list)):
-            idx_num = self.meta_list[i]-1
-            gram = self.list[i]
-            if (tops[idx_num] == -1) and (gram.p1.y < top_y[idx_num]) and (gram.p1.x < midpoint < gram.p3.x):
-                tops[idx_num] = gram.p1.y*scale
-
-        likelist_ls, max_density = self.calculate_alignment(samples_ls=tops, scale=scale, plot="top")
-        self.top_pixel_align = min(likelist_ls)
-        return self.top_pixel_align, max_density
-
-    def get_bot_alignment(self, scale=1.0):
-        right_margin = self.right_pixel_align
-        left_margin = self.left_pixel_align
-
-        midpoint = left_margin + (right_margin-left_margin)/2.0
-        num_pages = max(self.meta_list)
-        bots = [-1]*num_pages
-        size_min = midpoint
-        for i in range(len(self.list)):
-            idx_num = self.meta_list[i]-1
-            gram = self.list[i]
-            scaled_y = gram.p3.y*scale
-            if (scaled_y > bots[idx_num]) and (gram.p1.x < midpoint < gram.p3.x) and (gram.get_width() > size_min): 
-                bots[idx_num] = scaled_y
-
-        likelist_ls, max_density = self.calculate_alignment(samples_ls=bots, scale=scale, plot="bot")
-        self.bot_pixel_align = max(likelist_ls)
-        return self.bot_pixel_align, max_density
