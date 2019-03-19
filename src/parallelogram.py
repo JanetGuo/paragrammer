@@ -118,6 +118,9 @@ class Parallelograms:
         if meta:
             self.meta_list.append(meta)
     
+    def get_height_list(self):
+        return [para.get_height() for para in self.list]
+
     def __str__(self):
         str_ls = [item.__str__() for item in self.list]
         return "\n".join(str_ls)
@@ -131,7 +134,7 @@ class Parallelograms:
             if len(sample_set) > sample_size:
                 sample_set = random.sample(X, sample_size)
             else:
-                sample_set = X
+                sample_set = list(sample_set)
 
             np_samples = np.array(sample_set)[:, np.newaxis]
 
@@ -180,7 +183,9 @@ class Parallelograms:
 
         return dict_indents[max_density], max_density
 
-    def calculate_alignment(self, samples_ls, scale=1.0, plot=None):
+    def calculate_alignment(self, samples_ls, scale=None, plot=None):
+        scale = float(scale) if scale else 1.0
+        samples_ls = [sample*scale for sample in samples_ls]
         X = np.array(samples_ls)[:, np.newaxis]
         X_plot = self.get_pixel_intervals(samples_ls, scale)
 
