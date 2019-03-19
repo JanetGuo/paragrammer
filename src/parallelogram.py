@@ -123,30 +123,21 @@ class Parallelograms:
         return "\n".join(str_ls)
     
     def set_bandwidth(self, X, manual_num=None):
-        print(f"len(X): {len(X)}")
         bandwidth = manual_num
         if manual_num is None:
-            # use a subset to reduce fit time
+            # use a random sample subset to reduce fit time
             sample_size = 100
             sample_set = set(X)
             if len(sample_set) > sample_size:
                 sample_set = random.sample(X, sample_size)
             else:
                 sample_set = X
-            print(f"len(sample): {len(sample_set)}")
+
             np_samples = np.array(sample_set)[:, np.newaxis]
 
-            # calculate bandwith using cross-validation
-            start = time()
+            # calculate bandwith
             grid = self.set_grid()
-            stop = time()-start
-            print(f"wrap around set_grid: {stop}")
-            
-            start = time()
             grid.fit(np_samples)
-            stop = time()-start
-            print(f"wrap around grid.fit(X): {stop}")
-
             bandwidth = grid.best_params_['bandwidth']
         return bandwidth
 
@@ -154,7 +145,7 @@ class Parallelograms:
         if not Parallelograms.bandwidth_grid or reset:
             Parallelograms.bandwidth_grid = GridSearchCV(KernelDensity(kernel='tophat'),
                 {'bandwidth': np.linspace(0.1, 1.0, 100)},
-                cv=8) # 10-fold cross-validation
+                cv=8) # 8-fold cross-validation
         return Parallelograms.bandwidth_grid
                 
     def get_pixel_intervals(self, x_range, scale=1.0):
@@ -191,27 +182,12 @@ class Parallelograms:
 
     def calculate_alignment(self, samples_ls, scale=1.0, plot=None):
         X = np.array(samples_ls)[:, np.newaxis]
-        start = time()
         X_plot = self.get_pixel_intervals(samples_ls, scale)
-        stop = time()-start
-        print(f"get_pixel_intervals: {stop}")
 
-        start = time()
         tophat_bandwidth = self.set_bandwidth(samples_ls)
-        stop = time()-start
-        print(f"get bandwidth: {stop}")
-        start = time()
         kde = KernelDensity(kernel='tophat', bandwidth=tophat_bandwidth).fit(X)
-        stop = time()-start
-        print(f"fit to tophat kernel: {stop}")
-        start = time()
         log_dens = kde.score_samples(X_plot)
-        stop = time()-start
-        print(f"score_samples: {stop}")
-        start = time()
         pixels, max_density = self.get_highest_density_pixels(log_dens)
-        stop = time()-start
-        print(f"get_highest_density_pixels: {stop}")
 
         # in case of plotting
         if plot:
