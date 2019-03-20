@@ -134,7 +134,7 @@ class Parallelograms:
             if len(sample_set) > sample_size:
                 sample_set = random.sample(X, sample_size)
             else:
-                sample_set = list(sample_set)
+                sample_set = X
 
             np_samples = np.array(sample_set)[:, np.newaxis]
 
