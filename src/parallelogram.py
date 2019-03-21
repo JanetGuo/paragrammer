@@ -127,7 +127,9 @@ class Parallelograms:
     
     def set_bandwidth(self, X, manual_num=None):
         bandwidth = manual_num
-        if manual_num is None:
+        # check that a manual bandwidth hasn't already been given
+        # also need at least 8 samples for fit
+        if manual_num is None and (len(X) >= 8):
             # use a random sample subset to reduce fit time
             sample_size = 100
             sample_set = set(X)
@@ -183,9 +185,15 @@ class Parallelograms:
 
         return dict_indents[max_density], max_density
 
-    def calculate_alignment(self, samples_ls, scale=None, plot=None):
+    def calculate_alignment(self, samples_ls, scale=None, plot=None, bandwidth=None):
+        # populate optional parameters
         scale = float(scale) if scale else 1.0
         samples_ls = [sample*scale for sample in samples_ls]
+        tophat_bandwidth = self.set_bandwidth(samples_ls) if bandwidth is None else bandwidth
+
+        pixels, max_density = None, None
+
+        if tophat_bandwidth:
         X = np.array(samples_ls)[:, np.newaxis]
         X_plot = self.get_pixel_intervals(samples_ls, scale)
 
