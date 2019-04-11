@@ -118,6 +118,11 @@ class Parallelograms:
         if meta:
             self.meta_list.append(meta)
     
+    def is_empty(self):
+        if self.list:
+            return False
+        return True
+
     def get_height_list(self):
         return [para.get_height() for para in self.list]
 
@@ -139,7 +144,8 @@ class Parallelograms:
                 sample_set = random.sample(X, sample_size)
             else:
                 sample_set = X
-
+            print(f"sample_set = {sample_set}")
+            print(f"sample_set size = {len(sample_set)}")
             np_samples = np.array(sample_set)[:, np.newaxis]
 
             # calculate bandwith
@@ -196,20 +202,20 @@ class Parallelograms:
         pixels, max_density = None, None
 
         if tophat_bandwidth:
-        X = np.array(samples_ls)[:, np.newaxis]
-        X_plot = self.get_pixel_intervals(samples_ls, scale)
+            X = np.array(samples_ls)[:, np.newaxis]
+            X_plot = self.get_pixel_intervals(samples_ls, scale)
 
-        kde = KernelDensity(kernel='tophat', bandwidth=tophat_bandwidth).fit(X)
-        log_dens = kde.score_samples(X_plot)
-        pixels, max_density = self.get_highest_density_pixels(log_dens)
+            kde = KernelDensity(kernel='tophat', bandwidth=tophat_bandwidth).fit(X)
+            log_dens = kde.score_samples(X_plot)
+            pixels, max_density = self.get_highest_density_pixels(log_dens)
 
-        # in case of plotting
-        if plot:
-            if plot not in self.plot_dict:
-                self.plot_dict[plot] = {}
-            self.plot_dict[plot]["X_plot"] = X_plot
-            self.plot_dict[plot]["densities"] = np.exp(log_dens)
-            
+            # in case of plotting
+            if plot:
+                if plot not in self.plot_dict:
+                    self.plot_dict[plot] = {}
+                self.plot_dict[plot]["X_plot"] = X_plot
+                self.plot_dict[plot]["densities"] = np.exp(log_dens)
+                
         return pixels, max_density
 
     def calculate_alignment_range(self, densities):
