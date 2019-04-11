@@ -134,6 +134,8 @@ class Parallelograms:
             sample_size = 100
             sample_set = set(X)
             if len(sample_set) > sample_size:
+                sample_set = random.sample(sample_set, sample_size)
+            elif len(X) > sample_size*2:
                 sample_set = random.sample(X, sample_size)
             else:
                 sample_set = X
@@ -197,7 +199,6 @@ class Parallelograms:
         X = np.array(samples_ls)[:, np.newaxis]
         X_plot = self.get_pixel_intervals(samples_ls, scale)
 
-        tophat_bandwidth = self.set_bandwidth(samples_ls)
         kde = KernelDensity(kernel='tophat', bandwidth=tophat_bandwidth).fit(X)
         log_dens = kde.score_samples(X_plot)
         pixels, max_density = self.get_highest_density_pixels(log_dens)
