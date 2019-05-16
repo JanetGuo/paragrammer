@@ -115,13 +115,29 @@ class Parallelograms:
     
     def append(self, para, meta=None):
         self.list.append(para)
-        if meta:
             self.meta_list.append(meta)
     
+    def pop(self, index=None):
+        if index:
+            gram = self.list.pop(index)
+            meta = self.meta_list.pop(index)
+        else:
+            gram = self.list.pop()
+            meta = self.meta_list.pop()
+        
+        return gram, meta
+
     def is_empty(self):
         if self.list:
             return False
         return True
+
+    def get_width(self):
+        farthest_pixel = 0
+        for gram in self.list:
+            if gram.p3.x > farthest_pixel:
+                farthest_pixel = gram.p3.x
+        return farthest_pixel
 
     def get_height_list(self):
         return [para.get_height() for para in self.list]
