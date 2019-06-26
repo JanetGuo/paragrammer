@@ -59,6 +59,9 @@ class Parallelogram:
         self.p3 = coords_ls[1]
         self.p4 = None
 
+        self.__width = None
+        self.__height = None
+
         if num_points == 2:
             if m and b:
                 # TODO: Need more accurate and robust calculations
@@ -80,11 +83,17 @@ class Parallelogram:
 
     def get_width(self):
         # TODO: need more robust distance calculation
-        return self.p2.x - self.p1.x
+        if not self.__width:
+            self.__width = self.p2.x - self.p1.x
+    
+        return self.__width
     
     def get_height(self):
         # TODO: need more robust distance calculation
-        return self.p4.y - self.p1.y
+        if not self.__height:
+            self.__height = self.p4.y - self.p1.y
+    
+        return self.__height
     
     @staticmethod
     def __sort_by_distance(coords_ls):
@@ -112,6 +121,8 @@ class Parallelograms:
         self.left_pixel_align, self.right_pixel_align = None, None
         self.top_pixel_align, self.bot_pixel_align = None, None
         self.plot_dict = {}
+        self.width = None
+        self.height = None
     
     def append(self, para, meta=None):
         self.list.append(para)
@@ -132,12 +143,17 @@ class Parallelograms:
             return False
         return True
 
-    def get_width(self):
-        farthest_pixel = 0
+    def calculate_dimensions(self):
+        if (not self.width) or (not self.height):
+            widest_pixel = 0
+            tallest_pixel = 0
         for gram in self.list:
-            if gram.p3.x > farthest_pixel:
-                farthest_pixel = gram.p3.x
-        return farthest_pixel
+                if gram.p3.x > widest_pixel:
+                    widest_pixel = gram.p3.x
+                if gram.p3.y > tallest_pixel:
+                    tallest_pixel = gram.p3.y
+            self.width = widest_pixel
+            self.height = tallest_pixel
 
     def get_height_list(self):
         return [para.get_height() for para in self.list]
